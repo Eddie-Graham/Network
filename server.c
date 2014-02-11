@@ -92,10 +92,16 @@ int main(){
 }
 
 int readbuffer(char buf[]){
-
-	printf("Server: %s\n", buf);
 	
+	char *pt;
+	pt = strtok(buf, " ");
+	//printf("Server: %s\n", buf);
+	while(pt != NULL){
 
+		printf("%s\n", pt);
+		pt = strtok(NULL, " ");
+	
+	}
 
 	return 1;
 
