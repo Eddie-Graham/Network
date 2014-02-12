@@ -98,12 +98,12 @@ int readbuffer(char buf[]){
 	//printf("Server: %s\n", buf);
 	while(pt != NULL){
 		
-		if(*pt == '/'){
-			printf("%s\n", "yup");
-		}
+//		if(*pt == '/'){
+//			printf("%s\n", pt);
+//		}
 		printf("%s\n", pt);
-		
-		pt = strtok(NULL, " ");
+		pt++;
+		//pt = strtok(NULL, " ");
 
 	
 	}
