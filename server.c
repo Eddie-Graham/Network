@@ -94,14 +94,18 @@ int main(){
 int readbuffer(char buf[]){
 	
 	char *pt;
+	char *filename;
 	pt = strtok(buf, " ");
 	//printf("Server: %s\n", buf);
 	while(pt != NULL){
 		
 		if(*pt == '/'){
-			printf("%s\n", "yup");
+//			printf("%s\n", "yup");
+			filename = strtok(pt, " ");
+			printf("GET file: %s\n", filename);
 		}
-		printf("%s\n", pt);
+//		printf("%s\n", pt);
+//		printf("GET file: %s\n", filename);
 		
 		pt = strtok(NULL, " ");
 
