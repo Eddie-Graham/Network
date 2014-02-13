@@ -13,6 +13,7 @@
 #define PORT 8080
 
 char *getFileName(char buf[]);
+char *getFileBuf(char *filename);
 
 char response[] = "HTTP/1.1 200 OK\r\n"
 "Content-Type: text/html; charset=UTF-8\r\n\r\n"
@@ -21,6 +22,7 @@ char response[] = "HTTP/1.1 200 OK\r\n"
 "h1 { font-size:4cm; text-align: center; color: black;"
 " text-shadow: 0 0 2mm white}</style></head>"
 "<body><h1>Welcome!</h1></body></html>\r\n";
+
 
 int main(){
 
@@ -64,6 +66,8 @@ int main(){
 
 		ssize_t rcount;
 		char buf[BUFLEN+1];
+
+		char *fileBuf = NULL;
 		char *filename = NULL;
 
 		rcount = read(connfd, buf, BUFLEN);
@@ -74,9 +78,14 @@ int main(){
 		
 		filename = getFileName(buf);
 
+		printf("Before filebuf %s\n", filename);
+		fileBuf = getFileBuf(filename);
+
 		printf("GET file: %s\n", filename);
+		printf("buffer: %s\n", fileBuf);
+		printf("buffer: %s\n", response);
 	
-		if ((write(connfd, response, sizeof(response)-1) == -1)) {
+		if ((write(connfd, fileBuf, sizeof(response)-1) == -1)) {
 			// Error has occurred
 			printf("Cant write");
 		}
@@ -101,7 +110,8 @@ char *getFileName(char buf[]){
 	while(pt != NULL){
 		
 		if(*pt == '/'){
-			filename = strtok(pt, " ");			
+			filename = strtok(pt, " ");
+			filename++;			
 			return filename;
 		}
 		
@@ -109,5 +119,42 @@ char *getFileName(char buf[]){
 	}
 
 	return NULL;
+
+}
+
+char *getFileBuf(char *filename){
+	printf("In getfile %s\n", filename);
+	FILE * pFile;
+  	long lSize;
+	char * buffer;
+  	size_t result;
+
+  	pFile = fopen (filename , "rb" );
+ 	if (pFile==NULL) { 
+		return NULL;
+	}
+
+  	// obtain file size:
+  	fseek (pFile , 0 , SEEK_END);
+  	lSize = ftell (pFile);
+  	rewind (pFile);
+
+  	// allocate memory to contain the whole file:
+ 	buffer = (char*) malloc (sizeof(char)*lSize);
+ 	if (buffer == NULL) {
+		return NULL;
+	}
+
+  	// copy the file into the buffer:
+ 	result = fread (buffer,1,lSize,pFile);
+  	if (result != lSize) {}
+//  	printf("%s", buffer);
+  	/* the whole file is now loaded in the memory buffer. */
+
+  	// terminate
+  	fclose (pFile);
+//	free (buffer);
+ 	return buffer;
+
 
 }

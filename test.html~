@@ -1,0 +1,5 @@
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=UTF-8
+
+<doctype !html><html><head><title>My Webpage</title><style>body { background-color: #111 }h1 { font-size:4cm; text-align: center; color: black; text-shadow: 0 0 2mm white}</style></head><body><h1>Welcome!</h1></body></html>
+
