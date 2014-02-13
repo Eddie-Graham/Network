@@ -12,7 +12,7 @@
 #define BUFLEN 1500
 #define PORT 8080
 
-int readbuffer(char buf[]);
+char *getFileName(char buf[]);
 
 char response[] = "HTTP/1.1 200 OK\r\n"
 "Content-Type: text/html; charset=UTF-8\r\n\r\n"
@@ -64,6 +64,7 @@ int main(){
 
 		ssize_t rcount;
 		char buf[BUFLEN+1];
+		char *filename = NULL;
 
 		rcount = read(connfd, buf, BUFLEN);
 		if (rcount == -1) {
@@ -71,10 +72,9 @@ int main(){
 		}
 		buf[rcount]='\0';
 		
-		readbuffer(buf);
+		filename = getFileName(buf);
 
-
-		//printf("Server: %s\n", buf);
+		printf("GET file: %s\n", filename);
 	
 		if ((write(connfd, response, sizeof(response)-1) == -1)) {
 			// Error has occurred
@@ -82,7 +82,7 @@ int main(){
 		}
 			
 		close(connfd);
-		printf("wrote\n");
+//		printf("wrote\n");
 		}
 	
 	printf("Closing\n");
@@ -91,27 +91,23 @@ int main(){
 
 }
 
-int readbuffer(char buf[]){
+char *getFileName(char buf[]){
 	
 	char *pt;
 	char *filename;
+
 	pt = strtok(buf, " ");
-	//printf("Server: %s\n", buf);
+
 	while(pt != NULL){
 		
 		if(*pt == '/'){
-//			printf("%s\n", "yup");
-			filename = strtok(pt, " ");
-			printf("GET file: %s\n", filename);
+			filename = strtok(pt, " ");			
+			return filename;
 		}
-//		printf("%s\n", pt);
-//		printf("GET file: %s\n", filename);
 		
-		pt = strtok(NULL, " ");
-
-	
+		pt = strtok(NULL, " ");	
 	}
 
-	return 1;
+	return NULL;
 
 }
