@@ -78,16 +78,13 @@ int main(){
 		
 		filename = getFileName(buf);
 
-		printf("Before filebuf %s\n", filename);
-		fileBuf = getFileBuf(filename);
-
 		printf("GET file: %s\n", filename);
-		printf("buffer: %s\n", fileBuf);
-		printf("buffer: %s\n", response);
-	
-		if ((write(connfd, response, sizeof(response)-1) == -1)) {
+
+		fileBuf = getFileBuf(filename);
+			
+		if ((write(connfd, fileBuf, sizeof(response)-1) == -1)) {
 			// Error has occurred
-			printf("Cant write");
+			printf("Cant write\n");
 		}
 			
 		close(connfd);
@@ -123,6 +120,7 @@ char *getFileName(char buf[]){
 }
 
 char *getFileBuf(char *filename){
+
 	printf("In getfile %s\n", filename);
 	FILE * pFile;
   	long lSize;
@@ -148,7 +146,7 @@ char *getFileBuf(char *filename){
   	// copy the file into the buffer:
  	result = fread (buffer,1,lSize,pFile);
   	if (result != lSize) {}
-//  	printf("%s", buffer);
+
   	/* the whole file is now loaded in the memory buffer. */
 
   	// terminate
