@@ -14,6 +14,7 @@
 
 char *getFileName(char buf[]);
 char *getFileBuf(char *filename);
+long getFileSize(char *filename);
 
 char response[] = "HTTP/1.1 200 OK\r\n"
 "Content-Type: text/html; charset=UTF-8\r\n\r\n"
@@ -69,6 +70,7 @@ int main(){
 
 		char *fileBuf = NULL;
 		char *filename = NULL;
+		long fileSize = NULL;
 
 		rcount = read(connfd, buf, BUFLEN);
 		if (rcount == -1) {
@@ -77,12 +79,13 @@ int main(){
 		buf[rcount]='\0';
 		
 		filename = getFileName(buf);
-
-		printf("GET file: %s\n", filename);
-
+		fileSize = getFileSize(filename);
 		fileBuf = getFileBuf(filename);
+
+		printf("File: %s\n", filename);
+		printf("Size: %lu\n", fileSize);
 			
-		if ((write(connfd, fileBuf, sizeof(response)-1) == -1)) {
+		if ((write(connfd, fileBuf, fileSize) == -1)) {
 			// Error has occurred
 			printf("Cant write\n");
 		}
@@ -121,7 +124,6 @@ char *getFileName(char buf[]){
 
 char *getFileBuf(char *filename){
 
-	printf("In getfile %s\n", filename);
 	FILE * pFile;
   	long lSize;
 	char * buffer;
@@ -155,4 +157,21 @@ char *getFileBuf(char *filename){
  	return buffer;
 
 
+}
+
+long getFileSize(char *filename){
+
+	FILE * pFile;
+  	long lSize;
+	
+
+  	pFile = fopen (filename , "rb" );
+ 	if (pFile==NULL) { 
+		return NULL;
+	}
+
+  	// obtain file size:
+  	fseek (pFile , 0 , SEEK_END);
+  	lSize = ftell (pFile);
+	return lSize;
 }
