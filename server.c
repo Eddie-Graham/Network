@@ -17,9 +17,6 @@ char *getFileName(char buf[]);
 char *getFileBuf(char *filename);
 long getFileSize(char *filename);
 
-char response[] = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n<doctype !html><html><head><title>Test2</title><style>body { background-color: #111 }h1 { font-size:4cm; text-align: center; color: black; text-shadow: 0 0 2mm white}</style></head><body><h1>Yipeeeee!</h1></body></html>\r\n";
-
-
 int main(){
 
 	int fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -51,6 +48,10 @@ int main(){
 	while(WAIT){	
 
 		char successfulResponse[] = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n";	
+		char notFoundResponse[] = "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n<html><head><title>404 Not Found</title></head><body><p>The requested file cannot be found.</p></body></html>";
+
+		char *response = NULL;
+		long size;
 	
 		printf("Server: Waiting to accept\n");
 		connfd = accept(fd, (struct sockaddr *) &cliaddr, &cliaddrlen);
@@ -74,15 +75,31 @@ int main(){
 		}
 		buf[rcount]='\0';
 		
+		
 		filename = getFileName(buf);
-		fileSize = getFileSize(filename);
-		fileBuf = getFileBuf(filename);
 
 		printf("File: %s\n", filename);
+		
+		fileBuf = getFileBuf(filename);
 
-		strcat(successfulResponse, fileBuf);
+		if(fileBuf){
+
+			fileSize = getFileSize(filename);
+			strcat(successfulResponse, fileBuf);
+			response = successfulResponse;
+			size = sizeof(successfulResponse)+fileSize;
+//			printf("%s\n", response);
+		}
+		else{ 
+
+			response = notFoundResponse;
+			size = sizeof(notFoundResponse);
+//			printf("%s\n", response);
+		}
+
+		
 			
-		if ((write(connfd, successfulResponse, sizeof(successfulResponse)+fileSize) == -1)) {
+		if ((write(connfd, response, size ) == -1)) {
 			// Error has occurred
 			printf("Cant write\n");
 		}
