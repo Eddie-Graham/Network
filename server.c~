@@ -26,7 +26,7 @@ char response[] = "HTTP/1.1 200 OK\r\n"
 
 
 int main(){
-
+#000000
 	int wait = 1;
 	int fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -70,7 +70,7 @@ int main(){
 
 		char *fileBuf = NULL;
 		char *filename = NULL;
-		long fileSize = NULL;
+		long fileSize = (long) NULL;
 
 		rcount = read(connfd, buf, BUFLEN);
 		if (rcount == -1) {
@@ -162,16 +162,17 @@ char *getFileBuf(char *filename){
 long getFileSize(char *filename){
 
 	FILE * pFile;
-  	long lSize;
-	
+  	long lSize;	
 
   	pFile = fopen (filename , "rb" );
  	if (pFile==NULL) { 
-		return NULL;
+		return (long) NULL;
 	}
 
   	// obtain file size:
   	fseek (pFile , 0 , SEEK_END);
   	lSize = ftell (pFile);
+	fclose (pFile);
+
 	return lSize;
 }

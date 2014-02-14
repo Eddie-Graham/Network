@@ -26,7 +26,7 @@ char response[] = "HTTP/1.1 200 OK\r\n"
 
 
 int main(){
-
+#000000
 	int wait = 1;
 	int fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -70,7 +70,7 @@ int main(){
 
 		char *fileBuf = NULL;
 		char *filename = NULL;
-		long fileSize = NULL;
+		long fileSize = (long) NULL;
 
 		rcount = read(connfd, buf, BUFLEN);
 		if (rcount == -1) {
@@ -147,7 +147,7 @@ char *getFileBuf(char *filename){
 
   	// copy the file into the buffer:
  	result = fread (buffer,1,lSize,pFile);
-  	if (result != lSize) {}
+  	if ((unsigned) result != lSize) {}
 
   	/* the whole file is now loaded in the memory buffer. */
 
@@ -166,7 +166,7 @@ long getFileSize(char *filename){
 
   	pFile = fopen (filename , "rb" );
  	if (pFile==NULL) { 
-		return NULL;
+		return (long) NULL;
 	}
 
   	// obtain file size:
