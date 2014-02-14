@@ -105,21 +105,30 @@ char *getFileName(char buf[]){
 	char *pt;
 	char *filename;
 
+	printf("%s\n", buf);
+
 	pt = strtok(buf, " ");
 
 	while(pt != NULL){
+
+//		printf("pt %s\n", pt);
+
+		if(strcmp(pt, "GET")==0){
+
+			filename = strtok(NULL, " ");
+			filename++;
+
+			pt = strtok(NULL, " \r\n");
 		
-		if(*pt == '/'){
-			filename = strtok(pt, " ");
-			filename++;			
-			return filename;
+			if(strcmp(pt, "HTTP/1.1")==0){
+				return filename;			
+			}
 		}
+			
+		pt = strtok(NULL, " ");
 		
-		pt = strtok(NULL, " ");	
 	}
-
 	return NULL;
-
 }
 
 char *getFileBuf(char *filename){
