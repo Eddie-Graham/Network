@@ -49,6 +49,7 @@ int main(){
 
 		char successfulResponse[] = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n";	
 		char notFoundResponse[] = "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n<html><head><title>404 Not Found</title></head><body><p>The requested file cannot be found.</p></body></html>";
+		char badRequestResponse[] = "HTTP/1.1 404 Bad Request\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n<html><head><title>404 Bad Request</title></head><body><p>Bad Request.</p></body></html>";
 
 		char *response = NULL;
 		long size;
@@ -78,23 +79,30 @@ int main(){
 		
 		filename = getFileName(buf);
 
-		printf("File: %s\n", filename);
+		if(filename){
+
+			printf("File: %s\n", filename);
 		
-		fileBuf = getFileBuf(filename);
+			fileBuf = getFileBuf(filename);
 
-		if(fileBuf){
+			if(fileBuf){
 
-			fileSize = getFileSize(filename);
-			strcat(successfulResponse, fileBuf);
-			response = successfulResponse;
-			size = sizeof(successfulResponse)+fileSize;
-//			printf("%s\n", response);
+				fileSize = getFileSize(filename);
+				strcat(successfulResponse, fileBuf);
+				response = successfulResponse;
+				size = sizeof(successfulResponse)+fileSize;
+//				printf("%s\n", response);
+			}
+			else{ 
+
+				response = notFoundResponse;
+				size = sizeof(notFoundResponse);
+//				printf("%s\n", response);
+			}
 		}
-		else{ 
-
-			response = notFoundResponse;
-			size = sizeof(notFoundResponse);
-//			printf("%s\n", response);
+		else{
+			response = badRequestResponse;
+			size = sizeof(badRequestResponse);
 		}
 
 		
