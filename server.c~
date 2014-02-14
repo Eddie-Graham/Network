@@ -16,17 +16,11 @@ char *getFileName(char buf[]);
 char *getFileBuf(char *filename);
 long getFileSize(char *filename);
 
-char response[] = "HTTP/1.1 200 OK\r\n"
-"Content-Type: text/html; charset=UTF-8\r\n\r\n"
-"<doctype !html><html><head><title>My Webpage</title>"
-"<style>body { background-color: #111 }"
-"h1 { font-size:4cm; text-align: center; color: black;"
-" text-shadow: 0 0 2mm white}</style></head>"
-"<body><h1>Welcome!</h1></body></html>\r\n";
+char response[] = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n<doctype !html><html><head><title>Test2</title><style>body { background-color: #111 }h1 { font-size:4cm; text-align: center; color: black; text-shadow: 0 0 2mm white}</style></head><body><h1>Yipeeeee!</h1></body></html>\r\n";
 
 
 int main(){
-#000000
+
 	int wait = 1;
 	int fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -54,7 +48,9 @@ int main(){
 	struct sockaddr_in cliaddr;
 	socklen_t cliaddrlen = sizeof(cliaddr);
 
-	while(wait){		
+	while(wait){	
+
+		char successfulResponse[] = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n";	
 	
 		printf("Server: Waiting to accept\n");
 		connfd = accept(fd, (struct sockaddr *) &cliaddr, &cliaddrlen);
@@ -83,9 +79,10 @@ int main(){
 		fileBuf = getFileBuf(filename);
 
 		printf("File: %s\n", filename);
-		printf("Size: %lu\n", fileSize);
+
+		strcat(successfulResponse, fileBuf);
 			
-		if ((write(connfd, fileBuf, fileSize) == -1)) {
+		if ((write(connfd, successfulResponse, sizeof(successfulResponse)+fileSize) == -1)) {
 			// Error has occurred
 			printf("Cant write\n");
 		}
@@ -105,7 +102,7 @@ char *getFileName(char buf[]){
 	char *pt;
 	char *filename;
 
-	printf("%s\n", buf);
+//	printf("%s\n", buf);
 
 	pt = strtok(buf, " ");
 
@@ -121,7 +118,6 @@ char *getFileName(char buf[]){
 			pt = strtok(NULL, " \r\n");
 		
 			if(strcmp(pt, "HTTP/1.1")==0){
-				printf("%s\n", "http");
 				return filename;			
 			}
 		}
@@ -129,7 +125,6 @@ char *getFileName(char buf[]){
 		pt = strtok(NULL, " ");
 		
 	}
-
 	return NULL;
 }
 
