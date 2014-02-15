@@ -146,14 +146,14 @@ char *getFileName(char buf[]){
 
 //		printf("pt %s\n", pt);
 
-		if(strcmp(pt, "GET")==0){
+		if(strcmp(pt, "GET") == 0){
 
 			filename = strtok(NULL, " ");
 			filename++;
 
 			pt = strtok(NULL, " \r\n");
 		
-			if(strcmp(pt, "HTTP/1.1")==0){
+			if((strcmp(pt, "HTTP/1.1") == 0) || (strcmp(pt, "http/1.1") == 0)){
 				return filename;			
 			}
 		}
