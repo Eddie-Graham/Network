@@ -16,6 +16,7 @@
 char *getFileName(char buf[]);
 char *getFileBuf(char *filename);
 long getFileSize(char *filename);
+char *getFileType(char *filename);
 
 int main(){
 
@@ -74,6 +75,7 @@ int main(){
 		char *fileBuf = NULL;
 		char *filename = NULL;
 		long fileSize = (long) NULL;
+		char *fileType = NULL;
 
 		rcount = read(connfd, buf, BUFLEN);
 		if (rcount == -1) {
@@ -87,7 +89,7 @@ int main(){
 		if(!serviceError){		
 
 			filename = getFileName(buf);
-
+			
 			if(filename){
 
 				printf("File: %s\n", filename);
@@ -97,6 +99,8 @@ int main(){
 				if(fileBuf){
 
 					fileSize = getFileSize(filename);
+					fileType = getFileType(filename);			
+					printf("FileType: %s\n", fileType);
 					strcat(successfulResponse, fileBuf);
 					response = successfulResponse;
 					size = sizeof(successfulResponse)+fileSize;
@@ -218,3 +222,16 @@ long getFileSize(char *filename){
 
 	return lSize;
 }
+
+char *getFileType(char *filename){
+
+	char *pt;	
+	char *type;
+
+	pt = strtok(filename, ".");
+	pt = strtok(NULL, ".");
+	type = pt;
+
+	return type;
+}
+
