@@ -50,15 +50,20 @@ int main(){
 		char successfulResponse[] = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n";	
 		char notFoundResponse[] = "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n<html><head><title>404 Not Found</title></head><body><p>The requested file cannot be found.</p></body></html>";
 		char badRequestResponse[] = "HTTP/1.1 404 Bad Request\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n<html><head><title>404 Bad Request</title></head><body><p>Bad Request.</p></body></html>";
+		char internalServiceError[] = "HTTP/1.1 500 Internal Service Error\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n<html><head><title>500 Internal Service Error</title></head><body><p>Internal Service Error.</p></body></html>";
 
 		char *response = NULL;
 		long size;
+		int serviceError = 0;
 	
 		printf("Server: Waiting to accept\n");
 		connfd = accept(fd, (struct sockaddr *) &cliaddr, &cliaddrlen);
 		
 		if (connfd == -1) {
 			// an error occurred
+			response = internalServiceError;
+			size = sizeof(internalServiceError);
+			serviceError = 1;
 		} 
 
 		printf("Server: Accepted!\n");
@@ -72,11 +77,15 @@ int main(){
 
 		rcount = read(connfd, buf, BUFLEN);
 		if (rcount == -1) {
-			// An error has occurred...
+			// An error has occurred
+			response = internalServiceError;
+			size = sizeof(internalServiceError);
+			serviceError = 1;
 		}
 		buf[rcount]='\0';
 		
-		
+		if(!serviceError){		
+
 		filename = getFileName(buf);
 
 		if(filename){
@@ -105,6 +114,8 @@ int main(){
 			size = sizeof(badRequestResponse);
 		}
 
+		}
+
 		
 			
 		if ((write(connfd, response, size ) == -1)) {
@@ -127,7 +138,7 @@ char *getFileName(char buf[]){
 	char *pt;
 	char *filename;
 
-//	printf("%s\n", buf);
+//	printf("BUF:\n%s\n", buf);
 
 	pt = strtok(buf, " ");
 
