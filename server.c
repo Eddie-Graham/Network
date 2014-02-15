@@ -86,33 +86,33 @@ int main(){
 		
 		if(!serviceError){		
 
-		filename = getFileName(buf);
+			filename = getFileName(buf);
 
-		if(filename){
+			if(filename){
 
-			printf("File: %s\n", filename);
+				printf("File: %s\n", filename);
 		
-			fileBuf = getFileBuf(filename);
+				fileBuf = getFileBuf(filename);
 
-			if(fileBuf){
+				if(fileBuf){
 
-				fileSize = getFileSize(filename);
-				strcat(successfulResponse, fileBuf);
-				response = successfulResponse;
-				size = sizeof(successfulResponse)+fileSize;
-//				printf("%s\n", response);
+					fileSize = getFileSize(filename);
+					strcat(successfulResponse, fileBuf);
+					response = successfulResponse;
+					size = sizeof(successfulResponse)+fileSize;
+//					printf("%s\n", response);
+				}
+				else{ 
+
+					response = notFoundResponse;
+					size = sizeof(notFoundResponse);
+//					printf("%s\n", response);
+				}
+			}	
+			else{
+				response = badRequestResponse;
+				size = sizeof(badRequestResponse);
 			}
-			else{ 
-
-				response = notFoundResponse;
-				size = sizeof(notFoundResponse);
-//				printf("%s\n", response);
-			}
-		}
-		else{
-			response = badRequestResponse;
-			size = sizeof(badRequestResponse);
-		}
 
 		}
 

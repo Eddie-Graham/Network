@@ -84,10 +84,11 @@ int main(){
 		}
 		buf[rcount]='\0';
 		
-		
+		if(!serviceError){		
+
 		filename = getFileName(buf);
 
-		if(filename & !serviceError){
+		if(filename){
 
 			printf("File: %s\n", filename);
 		
@@ -111,6 +112,8 @@ int main(){
 		else{
 			response = badRequestResponse;
 			size = sizeof(badRequestResponse);
+		}
+
 		}
 
 		
