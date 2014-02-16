@@ -87,20 +87,19 @@ int main(){
 		buf[rcount]='\0';
 		
 		if(!serviceError){		
-
-			filename = getFileName(buf);
-			
+		
+			filename = getFileName(buf);			
+		
 			if(filename){
 
-				printf("File: %s\n", filename);
-		
-				fileBuf = getFileBuf(filename);
+				printf("File: %s\n", filename);		
+				fileBuf = getFileBuf(filename);			
 
 				if(fileBuf){
-
-					fileSize = getFileSize(filename);
-					fileType = getFileType(filename);			
+					
+					fileType = getFileType(filename);
 					printf("FileType: %s\n", fileType);
+					fileSize = getFileSize(filename);					
 					strcat(successfulResponse, fileBuf);
 					response = successfulResponse;
 					size = sizeof(successfulResponse)+fileSize;
@@ -141,30 +140,24 @@ char *getFileName(char buf[]){
 	
 	char *pt;
 	char *filename;
+	char *tempbuf = calloc(strlen(buf)+1, sizeof(char));;
+	
+	strcpy(tempbuf, buf);	
 
-//	printf("BUF:\n%s\n", buf);
+	pt = strtok(tempbuf, " ");
 
-	pt = strtok(buf, " ");
+	if(strcmp(pt, "GET") == 0){
 
-	while(pt != NULL){
+		filename = strtok(NULL, " ");
+		filename++;
 
-//		printf("pt %s\n", pt);
-
-		if(strcmp(pt, "GET") == 0){
-
-			filename = strtok(NULL, " ");
-			filename++;
-
-			pt = strtok(NULL, " \r\n");
+		pt = strtok(NULL, " \r\n");
 		
-			if((strcmp(pt, "HTTP/1.1") == 0) || (strcmp(pt, "http/1.1") == 0)){
-				return filename;			
-			}
+		if((strcmp(pt, "HTTP/1.1") == 0) || (strcmp(pt, "http/1.1") == 0)){
+			return filename;			
 		}
-			
-		pt = strtok(NULL, " ");
-		
 	}
+	
 	return NULL;
 }
 
@@ -227,8 +220,11 @@ char *getFileType(char *filename){
 
 	char *pt;	
 	char *type;
+	char *tempFilename = calloc(strlen(filename)+1, sizeof(char));;
+	
+	strcpy(tempFilename, filename);	
 
-	pt = strtok(filename, ".");
+	pt = strtok(tempFilename, ".");
 	pt = strtok(NULL, ".");
 	type = pt;
 

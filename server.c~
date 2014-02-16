@@ -87,20 +87,24 @@ int main(){
 		buf[rcount]='\0';
 		
 		if(!serviceError){		
-
+			printf("BUFBEFORE: %s\n", buf);
 			filename = getFileName(buf);
 			
+			printf("BUFAFTER: %s\n", buf);
 			if(filename){
 
 				printf("File: %s\n", filename);
 		
 				fileBuf = getFileBuf(filename);
+							
+				
 
 				if(fileBuf){
-
+					
+					fileType = getFileType(filename);
+					printf("FileType: %s\n", fileType);
 					fileSize = getFileSize(filename);
-					fileType = getFileType(filename);			
-//					printf("FileType: %s\n", fileType);
+					
 					strcat(successfulResponse, fileBuf);
 					response = successfulResponse;
 					size = sizeof(successfulResponse)+fileSize;
@@ -141,10 +145,13 @@ char *getFileName(char buf[]){
 	
 	char *pt;
 	char *filename;
+	char *tempbuf = calloc(strlen(buf)+1, sizeof(char));;
+	
+	strcpy(tempbuf, buf);	
 
 //	printf("BUF:\n%s\n", buf);
 
-	pt = strtok(buf, " ");
+	pt = strtok(tempbuf, " ");
 
 	while(pt != NULL){
 
@@ -227,8 +234,11 @@ char *getFileType(char *filename){
 
 	char *pt;	
 	char *type;
+	char *tempFilename = calloc(strlen(filename)+1, sizeof(char));;
+	
+	strcpy(tempFilename, filename);	
 
-	pt = strtok(filename, ".");
+	pt = strtok(tempFilename, ".");
 	pt = strtok(NULL, ".");
 	type = pt;
 
