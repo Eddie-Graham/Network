@@ -10,13 +10,17 @@
 #include <time.h> 
 
 #define BUFLEN 1500
-#define PORT 8080
+#define PORT 8081
 #define WAIT 1
+#define RESPONSEBUF 10000
 
 char *getFileName(char buf[]);
 char *getFileBuf(char *filename);
 long getFileSize(char *filename);
 char *getFileType(char *filename);
+char *generateSuccessfulResponse(char *fileType);
+char *getContent(char *fileType);
+int getSizeOfString(char *ptr);
 
 int main(){
 
@@ -48,7 +52,7 @@ int main(){
 
 	while(WAIT){	
 
-		char successfulResponse[] = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n";	
+//		char successfulResponse[] = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n";	
 		char notFoundResponse[] = "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n<html><head><title>404 Not Found</title></head><body><p>The requested file cannot be found.</p></body></html>";
 		char badRequestResponse[] = "HTTP/1.1 404 Bad Request\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n<html><head><title>404 Bad Request</title></head><body><p>Bad Request.</p></body></html>";
 		char internalServiceError[] = "HTTP/1.1 500 Internal Service Error\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n<html><head><title>500 Internal Service Error</title></head><body><p>Internal Service Error.</p></body></html>";
@@ -87,34 +91,31 @@ int main(){
 		buf[rcount]='\0';
 		
 		if(!serviceError){		
-			printf("BUFBEFORE: %s\n", buf);
-			filename = getFileName(buf);
-			
-			printf("BUFAFTER: %s\n", buf);
+		
+			filename = getFileName(buf);			
+		
 			if(filename){
 
-				printf("File: %s\n", filename);
-		
-				fileBuf = getFileBuf(filename);
-							
-				
+				printf("File: %s\n", filename);		
+				fileBuf = getFileBuf(filename);			
 
-				if(fileBuf){
+				if(fileBuf){					
 					
-					fileType = getFileType(filename);
+					fileType = getFileType(filename);					
+					fileSize = getFileSize(filename);				
+					response = generateSuccessfulResponse(fileType);
+					int strSize = 0;
+					strSize = getSizeOfString(response);
+					strcat(response, fileBuf);
+					size = strSize+fileSize;
 					printf("FileType: %s\n", fileType);
-					fileSize = getFileSize(filename);
-					
-					strcat(successfulResponse, fileBuf);
-					response = successfulResponse;
-					size = sizeof(successfulResponse)+fileSize;
-//					printf("%s\n", response);
+					printf("%s\n", response);
+
 				}
 				else{ 
 
 					response = notFoundResponse;
 					size = sizeof(notFoundResponse);
-//					printf("%s\n", response);
 				}
 			}	
 			else{
@@ -132,7 +133,6 @@ int main(){
 		}
 			
 		close(connfd);
-//		printf("wrote\n");
 		}
 	
 	printf("Closing\n");
@@ -149,29 +149,20 @@ char *getFileName(char buf[]){
 	
 	strcpy(tempbuf, buf);	
 
-//	printf("BUF:\n%s\n", buf);
-
 	pt = strtok(tempbuf, " ");
 
-	while(pt != NULL){
+	if(strcmp(pt, "GET") == 0){
 
-//		printf("pt %s\n", pt);
+		filename = strtok(NULL, " ");
+		filename++;
 
-		if(strcmp(pt, "GET") == 0){
-
-			filename = strtok(NULL, " ");
-			filename++;
-
-			pt = strtok(NULL, " \r\n");
+		pt = strtok(NULL, " \r\n");
 		
-			if((strcmp(pt, "HTTP/1.1") == 0) || (strcmp(pt, "http/1.1") == 0)){
-				return filename;			
-			}
+		if((strcmp(pt, "HTTP/1.1") == 0) || (strcmp(pt, "http/1.1") == 0)){
+			return filename;			
 		}
-			
-		pt = strtok(NULL, " ");
-		
 	}
+	
 	return NULL;
 }
 
@@ -244,4 +235,68 @@ char *getFileType(char *filename){
 
 	return type;
 }
+
+char *generateSuccessfulResponse(char *fileType){
+	
+
+	char *response;
+	char *contentType;
+	char string[RESPONSEBUF] = "";  // KEY
+	char header1[] = "HTTP/1.1 200 OK\r\nContent-Type: ";
+
+	contentType = getContent(fileType);
+	char header2[] = "\r\nConnection: close\r\n\r\n";
+
+	strcat(string, header1);
+	strcat(string, contentType);
+	strcat(string, header2);
+	response = string;
+
+
+	printf("%s\n", response);
+
+	return response;
+
+
+}
+
+char *getContent(char *fileType){
+	
+	char *contentType;	
+
+	if((strcmp(fileType, "html") == 0) || (strcmp(fileType, "htm") == 0) )
+		contentType = "text/html";
+
+	else if(strcmp(fileType, "txt") == 0)
+		contentType = "text/plain";
+
+	else if((strcmp(fileType, "jpg") == 0) || (strcmp(fileType, "jpeg") == 0) )
+		contentType = "image/jpeg";
+		
+	else if(strcmp(fileType, "gif") == 0)
+		contentType = "image/gif";	
+	
+	else contentType = "application/octet-stream";
+
+	return contentType;
+
+}
+
+int getSizeOfString(char *ptr){
+
+int size = 0;
+
+while(*ptr != '\0'){
+	size ++;
+	ptr++;
+
+}
+
+size++;
+
+return size;
+
+}
+
+
 
