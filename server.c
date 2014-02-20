@@ -22,7 +22,7 @@ char *getFileBuf(char *filename);
 char *getFileType(char *filename);
 char *getContent(char *fileType);
 int getSizeOfFile(char *ptr);
-void writeSuccessfulResponse(char *fileType, long fileSize, char *fileBuf, int connfd);
+void writeSuccessfulResponse(char *fileType, char *filename, char *fileBuf, int connfd);
 void writeNotFoundResponse(char *fileType, int connfd);
 void writeBadRequestResponse(int connfd);
 void writeInternalServiceErrorResponse(int connfd);
@@ -75,12 +75,8 @@ int main(){
 			char buf[BUFLEN+1];
 			ssize_t rcount;
 			char *fileBuf = NULL;
-			char *filename = NULL;
-			long fileSize = (long) NULL;
-		
-			char *fileType = NULL;
-
-	
+			char *filename = NULL;		
+			char *fileType = NULL;	
 
 			rcount = read(connfd, buf, BUFLEN);
 			if (rcount == -1) {
@@ -94,34 +90,28 @@ int main(){
 
 			buf[rcount]='\0';
 		
-			if(!serviceError){		
-		
+			if(!serviceError){	
+	
 				filename = getFileName(buf);
-							
-			
+		
 				if(filename){
 
 					printf("File: %s\n", filename);	
 					fileType = getFileType(filename);	
 					fileBuf = getFileBuf(filename);			
 
-					if(fileBuf){					
-						
-											
-						fileSize = getSizeOfFile(filename);			
-						writeSuccessfulResponse(fileType, fileSize, fileBuf, connfd);
-						printf("size %ld\n", fileSize);
+					if(fileBuf){	
+												
+						writeSuccessfulResponse(fileType, filename, fileBuf, connfd);
 
 					}
 					else{ 
-
 						writeNotFoundResponse(fileType, connfd);
 					}
 				}	
 				else{
 					writeBadRequestResponse(connfd);
 				}
-
 			}
 			else{
 				writeInternalServiceErrorResponse(connfd);
@@ -251,7 +241,10 @@ int getSizeOfFile(char *filename){
 
 }
 
-void writeSuccessfulResponse(char *fileType, long fileSize, char *fileBuf, int connfd){
+void writeSuccessfulResponse(char *fileType, char *filename, char *fileBuf, int connfd){
+
+	long fileSize = (long) NULL;
+	fileSize = getSizeOfFile(filename);
 
 	char *contentTypeString = (char *)malloc(1000);  
 	char *contentType;
