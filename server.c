@@ -8,19 +8,22 @@
 #include <string.h>
 #include <sys/types.h>
 #include <time.h> 
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #define BUFLEN 1500
 #define PORT 8081
-#define WAIT 1
+#define ACCEPTCONNECTIONS 1
 #define RESPONSEBUF 10000
 
 char *getFileName(char buf[]);
 char *getFileBuf(char *filename);
-long getFileSize(char *filename);
+
 char *getFileType(char *filename);
-char *generateSuccessfulResponse(char *fileType);
+char *generateSuccessfulResponse(char *fileType, int size);
 char *getContent(char *fileType);
-int getSizeOfString(char *ptr);
+int getSizeOfFile(char *ptr);
+void writeSuccessful(char *fileType, int size, char *fileBuf, int connfd);
 
 int main(){
 
@@ -36,7 +39,7 @@ int main(){
 	addr.sin_port = htons(PORT);
 	
 	if (bind(fd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
-		// an error occurred
+		printf("%s\n", "bind failed");
 	}
 
 	int backlog = 10;	
@@ -50,7 +53,7 @@ int main(){
 	struct sockaddr_in cliaddr;
 	socklen_t cliaddrlen = sizeof(cliaddr);
 
-	while(WAIT){	
+	while(ACCEPTCONNECTIONS){	
 
 //		char successfulResponse[] = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n";	
 		char notFoundResponse[] = "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n<html><head><title>404 Not Found</title></head><body><p>The requested file cannot be found.</p></body></html>";
@@ -73,69 +76,87 @@ int main(){
 
 		printf("Server: Accepted!\n");
 
-		ssize_t rcount;
-		char buf[BUFLEN+1];
+//		while(1){
 
-		char *fileBuf = NULL;
-		char *filename = NULL;
-		long fileSize = (long) NULL;
-		char *fileType = NULL;
-
-		rcount = read(connfd, buf, BUFLEN);
-		if (rcount == -1) {
-			// An error has occurred
-			response = internalServiceError;
-			size = sizeof(internalServiceError);
-			serviceError = 1;
-		}
-		buf[rcount]='\0';
 		
-		if(!serviceError){		
+			char buf[BUFLEN+1];
+			ssize_t rcount;
+			char *fileBuf = NULL;
+			char *filename = NULL;
+			long fileSize = (long) NULL;
 		
-			filename = getFileName(buf);			
+			char *fileType = NULL;
+
+	
+
+			rcount = read(connfd, buf, BUFLEN);
+			if (rcount == -1) {
+				// An error has occurred
+				response = internalServiceError;
+				size = sizeof(internalServiceError);
+				serviceError = 1;
+			}
+			if (rcount == 0)
+				break;
+
 		
-			if(filename){
 
-				printf("File: %s\n", filename);		
-				fileBuf = getFileBuf(filename);			
+			buf[rcount]='\0';
+		
+			if(!serviceError){		
+		
+				filename = getFileName(buf);			
+			
+				if(filename){
 
-				if(fileBuf){					
-					
-					fileType = getFileType(filename);					
-					fileSize = getFileSize(filename);				
-					response = generateSuccessfulResponse(fileType);
-					int strSize = 0;
-					strSize = getSizeOfString(response);
-					strcat(response, fileBuf);
-					size = strSize+fileSize;
-					printf("FileType: %s\n", fileType);
-//					printf("%s\n", response);
+					printf("File: %s\n", filename);		
+					fileBuf = getFileBuf(filename);			
 
+					if(fileBuf){					
+						
+						fileType = getFileType(filename);					
+						fileSize = getSizeOfFile(filename);			
+						writeSuccessful(fileType, fileSize, fileBuf, connfd);
+//						strcat(response, fileBuf);
+						size = fileSize;
+//						size = sizeof(response);
+						printf("size %d\n", fileSize);
+
+					}
+					else{ 
+
+						response = notFoundResponse;
+						size = sizeof(notFoundResponse);
+					}
+				}	
+				else{
+					response = badRequestResponse;
+					size = sizeof(badRequestResponse);
 				}
-				else{ 
 
-					response = notFoundResponse;
-					size = sizeof(notFoundResponse);
-				}
-			}	
-			else{
-				response = badRequestResponse;
-				size = sizeof(badRequestResponse);
 			}
 
-		}
-
 		
-			
-		if ((write(connfd, response, size ) == -1)) {
-			// Error has occurred
-			printf("Cant write\n");
-		}
-			
+			if ((write(connfd, response, size) == -1)) {
+				// Error has occurred
+				printf("Cant write\n");
+			}
+//			if ((write(connfd, fileBuf, size ) == -1)) {
+				// Error has occurred
+//				printf("Cant write\n");
+//			}
+
+//			write(connfd, "HTTP/1.1 200 OK\n", 16); 
+//			write(connfd, "Content-length: 68428\n", 21); // for eddie.jpg
+//			write(connfd, "Content-Type: image/jpeg\n\n", 26); 
+//			write(connfd, fileBuf,size);
+
+//		}
+		printf("Closing\n");	
 		close(connfd);
 		}
 	
-	printf("Closing\n");
+	
 	close(fd);
 	return 0;
 
@@ -203,24 +224,6 @@ char *getFileBuf(char *filename){
 
 }
 
-long getFileSize(char *filename){
-
-	FILE * pFile;
-  	long lSize;	
-
-  	pFile = fopen (filename , "rb" );
- 	if (pFile==NULL) { 
-		return (long) NULL;
-	}
-
-  	// obtain file size:
-  	fseek (pFile , 0 , SEEK_END);
-  	lSize = ftell (pFile);
-	fclose (pFile);
-
-	return lSize;
-}
-
 char *getFileType(char *filename){
 
 	char *pt;	
@@ -236,24 +239,37 @@ char *getFileType(char *filename){
 	return type;
 }
 
-char *generateSuccessfulResponse(char *fileType){
+char *generateSuccessfulResponse(char *fileType, int size){
 	
-
+	
 	char *response;
 	char *contentType;
 	char string[RESPONSEBUF] = "";  // KEY
 	char header1[] = "HTTP/1.1 200 OK\r\nContent-Type: ";
 
 	contentType = getContent(fileType);
-	char header2[] = "\r\nConnection: close\r\n\r\n";
+
+	char header2[] = "\r\nConnection: close";
+
+	char header3[] = "\r\nContent-Length: ";
+
+	char text[11];
+   	
+   	sprintf(text, "%d", size);
+
+	char end[] = "\r\n\r\n";
+
 
 	strcat(string, header1);
 	strcat(string, contentType);
+	strcat(string, header3);
+	strcat(string, text);
 	strcat(string, header2);
+	strcat(string, end);
 	response = string;
 
 
-	printf("%s\n", response);
+	printf("\n%s\n", response);
 
 	return response;
 
@@ -282,21 +298,91 @@ char *getContent(char *fileType){
 
 }
 
-int getSizeOfString(char *ptr){
+int getSizeOfFile(char *filename){  
+	
+   	struct stat fs;
 
-int size = 0;
+        int fd = open(filename, O_RDONLY);
+	
+	if(fstat(fd, &fs) == -1){
+	
+	}
+   	
+   	return fs.st_size;
 
-while(*ptr != '\0'){
-	size ++;
-	ptr++;
+}
+
+/*void writeSuccessful(char *fileType, int size, char *fileBuf, int connfd){*/
+
+/*	*/
+/*	char *contentType;*/
+
+/*	char header1[] = "HTTP/1.1 200 OK\r\n";*/
+
+/*	char header2[] = "Content-Type: ";*/
+
+/*	contentType = getContent(fileType);	*/
+
+/*	char header3[] = "\r\nContent-Length: ";*/
+
+/*	char text[11];*/
+/*   	*/
+/*   	sprintf(text, "%d", size);*/
+
+/*	char header4[] = "\r\nConnection: close";*/
+
+/*	char end[] = "\r\n\r\n";*/
+
+/*		write(connfd, header1, sizeof(header1)); */
+/*		write(connfd, "Content-length: 68428\r\n", 23); // for eddie.jpg*/
+/*		write(connfd, "Content-Type: image/jpeg\r\n\r\n", 28); */
+/*		write(connfd, fileBuf,size);*/
+
+
+
+
+
+/*}*/
+
+void writeSuccessful(char *fileType, int fileSize, char *fileBuf, int connfd){
+
+	
+	char *contentString = (char *)malloc(300);  
+	char *contentType;
+
+	char *contentLength = (char *)malloc(300); 
+
+	char header1[] = "HTTP/1.1 200 OK\r\n";
+
+	char header2[] = "Content-Type: ";	
+
+	contentType = getContent(fileType);	
+
+	strcat(contentString, header2);
+	strcat(contentString, contentType);
+	strcat(contentString, "\r\n");
+
+	char header3[] = "Content-Length: ";
+
+	char text[11];
+   	
+   	sprintf(text, "%d", fileSize);	
+
+	strcat(contentLength, header3);
+	strcat(contentLength, text);
+	strcat(contentLength, "\r\n\r\n");
+
+	char header4[] = "Connection: close\r\n\r\n";
+
+	write(connfd, header1, sizeof(header1)); 
+	write(connfd, contentString, strlen(contentString)+1); 
+	write(connfd, contentLength, strlen(contentLength)); // for eddie.jpg
+//	write(connfd, header4, sizeof(header4) + 1);	
+	write(connfd, fileBuf,fileSize);
 
 }
 
-size++;
 
-return size;
-
-}
 
 
 
