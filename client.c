@@ -20,7 +20,7 @@ int main(int argc, char *argv[]){
 	struct sockaddr_in addr;
 	addr.sin_addr.s_addr = INADDR_ANY;
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(8080);
+	addr.sin_port = htons(8081);
 
 
 	int fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -36,7 +36,7 @@ int main(int argc, char *argv[]){
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = PF_UNSPEC; // Can use either IPv4 or IPv6
 	hints.ai_socktype = SOCK_STREAM; // Want a TCP socket
-	if ((i = getaddrinfo(argv[1], "8080",&hints, &ai0)) != 0) {
+	if ((i = getaddrinfo(argv[1], "8081",&hints, &ai0)) != 0) {
 		printf("Error: unable to lookup IP address: %s", gai_strerror(i));
 	}
 	// ai0 is a pointer to the head of a linked list of struct addrinfo

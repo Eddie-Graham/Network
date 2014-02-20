@@ -20,10 +20,12 @@ char *getFileName(char buf[]);
 char *getFileBuf(char *filename);
 
 char *getFileType(char *filename);
-char *generateSuccessfulResponse(char *fileType, int size);
 char *getContent(char *fileType);
 int getSizeOfFile(char *ptr);
-void writeSuccessful(char *fileType, int size, char *fileBuf, int connfd);
+void writeSuccessfulResponse(char *fileType, long fileSize, char *fileBuf, int connfd);
+void writeNotFoundResponse(char *fileType, int connfd);
+void writeBadRequestResponse(int connfd);
+void writeInternalServiceErrorResponse(int connfd);
 
 int main(){
 
@@ -55,13 +57,6 @@ int main(){
 
 	while(ACCEPTCONNECTIONS){	
 
-//		char successfulResponse[] = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n";	
-		char notFoundResponse[] = "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n<html><head><title>404 Not Found</title></head><body><p>The requested file cannot be found.</p></body></html>";
-		char badRequestResponse[] = "HTTP/1.1 404 Bad Request\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n<html><head><title>404 Bad Request</title></head><body><p>Bad Request.</p></body></html>";
-		char internalServiceError[] = "HTTP/1.1 500 Internal Service Error\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n<html><head><title>500 Internal Service Error</title></head><body><p>Internal Service Error.</p></body></html>";
-
-		char *response = NULL;
-		long size;
 		int serviceError = 0;
 	
 		printf("Server: Waiting to accept\n");
@@ -69,8 +64,6 @@ int main(){
 		
 		if (connfd == -1) {
 			// an error occurred
-			response = internalServiceError;
-			size = sizeof(internalServiceError);
 			serviceError = 1;
 		} 
 
@@ -92,8 +85,6 @@ int main(){
 			rcount = read(connfd, buf, BUFLEN);
 			if (rcount == -1) {
 				// An error has occurred
-				response = internalServiceError;
-				size = sizeof(internalServiceError);
 				serviceError = 1;
 			}
 			if (rcount == 0)
@@ -105,51 +96,36 @@ int main(){
 		
 			if(!serviceError){		
 		
-				filename = getFileName(buf);			
+				filename = getFileName(buf);
+							
 			
 				if(filename){
 
-					printf("File: %s\n", filename);		
+					printf("File: %s\n", filename);	
+					fileType = getFileType(filename);	
 					fileBuf = getFileBuf(filename);			
 
 					if(fileBuf){					
 						
-						fileType = getFileType(filename);					
+											
 						fileSize = getSizeOfFile(filename);			
-						writeSuccessful(fileType, fileSize, fileBuf, connfd);
-//						strcat(response, fileBuf);
-						size = fileSize;
-//						size = sizeof(response);
-						printf("size %d\n", fileSize);
+						writeSuccessfulResponse(fileType, fileSize, fileBuf, connfd);
+						printf("size %ld\n", fileSize);
 
 					}
 					else{ 
 
-						response = notFoundResponse;
-						size = sizeof(notFoundResponse);
+						writeNotFoundResponse(fileType, connfd);
 					}
 				}	
 				else{
-					response = badRequestResponse;
-					size = sizeof(badRequestResponse);
+					writeBadRequestResponse(connfd);
 				}
 
 			}
-
-		
-			if ((write(connfd, response, size) == -1)) {
-				// Error has occurred
-				printf("Cant write\n");
+			else{
+				writeInternalServiceErrorResponse(connfd);
 			}
-//			if ((write(connfd, fileBuf, size ) == -1)) {
-				// Error has occurred
-//				printf("Cant write\n");
-//			}
-
-//			write(connfd, "HTTP/1.1 200 OK\n", 16); 
-//			write(connfd, "Content-length: 68428\n", 21); // for eddie.jpg
-//			write(connfd, "Content-Type: image/jpeg\n\n", 26); 
-//			write(connfd, fileBuf,size);
 
 //		}
 		printf("Closing\n");	
@@ -239,43 +215,6 @@ char *getFileType(char *filename){
 	return type;
 }
 
-char *generateSuccessfulResponse(char *fileType, int size){
-	
-	
-	char *response;
-	char *contentType;
-	char string[RESPONSEBUF] = "";  // KEY
-	char header1[] = "HTTP/1.1 200 OK\r\nContent-Type: ";
-
-	contentType = getContent(fileType);
-
-	char header2[] = "\r\nConnection: close";
-
-	char header3[] = "\r\nContent-Length: ";
-
-	char text[11];
-   	
-   	sprintf(text, "%d", size);
-
-	char end[] = "\r\n\r\n";
-
-
-	strcat(string, header1);
-	strcat(string, contentType);
-	strcat(string, header3);
-	strcat(string, text);
-	strcat(string, header2);
-	strcat(string, end);
-	response = string;
-
-
-	printf("\n%s\n", response);
-
-	return response;
-
-
-}
-
 char *getContent(char *fileType){
 	
 	char *contentType;	
@@ -312,45 +251,12 @@ int getSizeOfFile(char *filename){
 
 }
 
-/*void writeSuccessful(char *fileType, int size, char *fileBuf, int connfd){*/
+void writeSuccessfulResponse(char *fileType, long fileSize, char *fileBuf, int connfd){
 
-/*	*/
-/*	char *contentType;*/
-
-/*	char header1[] = "HTTP/1.1 200 OK\r\n";*/
-
-/*	char header2[] = "Content-Type: ";*/
-
-/*	contentType = getContent(fileType);	*/
-
-/*	char header3[] = "\r\nContent-Length: ";*/
-
-/*	char text[11];*/
-/*   	*/
-/*   	sprintf(text, "%d", size);*/
-
-/*	char header4[] = "\r\nConnection: close";*/
-
-/*	char end[] = "\r\n\r\n";*/
-
-/*		write(connfd, header1, sizeof(header1)); */
-/*		write(connfd, "Content-length: 68428\r\n", 23); // for eddie.jpg*/
-/*		write(connfd, "Content-Type: image/jpeg\r\n\r\n", 28); */
-/*		write(connfd, fileBuf,size);*/
-
-
-
-
-
-/*}*/
-
-void writeSuccessful(char *fileType, int fileSize, char *fileBuf, int connfd){
-
-	
-	char *contentString = (char *)malloc(300);  
+	char *contentTypeString = (char *)malloc(1000);  
 	char *contentType;
 
-	char *contentLength = (char *)malloc(300); 
+	char *contentLengthString = (char *)malloc(1000); 
 
 	char header1[] = "HTTP/1.1 200 OK\r\n";
 
@@ -358,27 +264,80 @@ void writeSuccessful(char *fileType, int fileSize, char *fileBuf, int connfd){
 
 	contentType = getContent(fileType);	
 
-	strcat(contentString, header2);
-	strcat(contentString, contentType);
-	strcat(contentString, "\r\n");
+	strcat(contentTypeString, header2);
+	strcat(contentTypeString, contentType);
+	strcat(contentTypeString, "\r\n");
 
 	char header3[] = "Content-Length: ";
 
-	char text[11];
-   	
-   	sprintf(text, "%d", fileSize);	
+	char length[11];   	
+   	sprintf(length, "%ld", fileSize);	
 
-	strcat(contentLength, header3);
-	strcat(contentLength, text);
-	strcat(contentLength, "\r\n\r\n");
+	strcat(contentLengthString, header3);
+	strcat(contentLengthString, length);
+	strcat(contentLengthString, "\r\n");
 
 	char header4[] = "Connection: close\r\n\r\n";
 
-	write(connfd, header1, sizeof(header1)); 
-	write(connfd, contentString, strlen(contentString)+1); 
-	write(connfd, contentLength, strlen(contentLength)); // for eddie.jpg
-//	write(connfd, header4, sizeof(header4) + 1);	
+	write(connfd, header1, strlen(header1)); 
+	write(connfd, contentTypeString, strlen(contentTypeString)); 
+	write(connfd, contentLengthString, strlen(contentLengthString)); 
+	write(connfd, header4, strlen(header4));	
 	write(connfd, fileBuf,fileSize);
+
+}
+
+void writeNotFoundResponse(char *fileType, int connfd){
+
+	char *contentTypeString = (char *)malloc(1000);  
+	char *contentType;
+
+	char header1[] = "HTTP/1.1 404 Not Found\r\n";
+
+	char header2[] = "Content-Type: ";	
+
+	contentType = getContent(fileType);	
+
+	strcat(contentTypeString, header2);
+	strcat(contentTypeString, contentType);
+	strcat(contentTypeString, "\r\n");
+
+	char header3[] = "Connection: close\r\n\r\n";
+
+	char html[] = "<html><head><title>404 Not Found</title></head><body><p>The requested file cannot be found.</p></body></html>";
+
+	write(connfd, header1, strlen(header1)); 
+	write(connfd, contentTypeString, strlen(contentTypeString)); 
+	write(connfd, header3, strlen(header3));	
+	write(connfd, html, strlen(html));
+
+}
+
+void writeBadRequestResponse(int connfd){	
+
+	char header1[] = "HTTP/1.1 404 Bad Request\r\n";	
+
+	char header2[] = "Connection: close\r\n\r\n";
+
+	char html[] = "<html><head><title>404 Bad Request</title></head><body><p>Bad Request.</p></body></html>";
+
+	write(connfd, header1, strlen(header1)); 
+	write(connfd, header2, strlen(header2));	
+	write(connfd, html, strlen(html));
+
+}
+
+void writeInternalServiceErrorResponse(int connfd){	
+
+	char header1[] = "HTTP/1.1 500 Internal Service Error\r\n";	
+
+	char header2[] = "Connection: close\r\n\r\n";
+
+	char html[] = "<html><head><title>500 Internal Service Error</title></head><body><p>Internal Service Error.</p></body></html>";
+
+	write(connfd, header1, strlen(header1)); 
+	write(connfd, header2, strlen(header2));	
+	write(connfd, html, strlen(html));
 
 }
 
