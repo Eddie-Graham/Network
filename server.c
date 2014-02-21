@@ -18,7 +18,6 @@
 
 char *getFileName(char buf[]);
 char *getFileBuf(char *filename);
-
 char *getFileType(char *filename);
 char *getContent(char *fileType);
 int getSizeOfFile(char *ptr);
@@ -84,9 +83,7 @@ int main(){
 				serviceError = 1;
 			}
 			if (rcount == 0)
-				break;
-
-		
+				break;		
 
 			buf[rcount]='\0';
 		
@@ -192,17 +189,20 @@ char *getFileBuf(char *filename){
 
 char *getFileType(char *filename){
 
-	char *pt;	
-	char *type;
+	char *pt;
+	char *currentPt;	
 	char *tempFilename = calloc(strlen(filename)+1, sizeof(char));;
 	
 	strcpy(tempFilename, filename);	
 
 	pt = strtok(tempFilename, ".");
-	pt = strtok(NULL, ".");
-	type = pt;
 
-	return type;
+	while(pt != NULL){
+		currentPt = pt;
+		pt = strtok(NULL, ".");
+	}
+
+	return currentPt;
 }
 
 char *getContent(char *fileType){
