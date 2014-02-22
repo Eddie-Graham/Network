@@ -10,6 +10,8 @@
 #include <time.h> 
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <netdb.h>
+
 
 #define BUFLEN 1500
 #define PORT 8081
@@ -25,6 +27,8 @@ void writeSuccessfulResponse(char *fileType, char *filename, char *fileBuf, int 
 void writeNotFoundResponse(char *fileType, int connfd);
 void writeBadRequestResponse(int connfd);
 void writeInternalServiceErrorResponse(int connfd);
+char *getHostIp();
+int checkHostHeader(char buf[]);
 
 int main(){
 
@@ -40,7 +44,7 @@ int main(){
 	addr.sin_port = htons(PORT);
 	
 	if (bind(fd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
-		printf("%s\n", "bind failed");
+		printf("%s\n", "Bind failed");
 	}
 
 	int backlog = 10;	
@@ -76,6 +80,7 @@ int main(){
 			char *fileBuf = NULL;
 			char *filename = NULL;		
 			char *fileType = NULL;	
+			int hostOk = 0;
 
 			rcount = read(connfd, buf, BUFLEN);
 			if (rcount == -1) {
@@ -90,8 +95,9 @@ int main(){
 			if(!serviceError){	
 	
 				filename = getFileName(buf);
+				hostOk = checkHostHeader(buf);
 		
-				if(filename){
+				if(filename && hostOk){
 
 					printf("File: %s\n", filename);	
 					fileType = getFileType(filename);	
@@ -331,6 +337,73 @@ void writeInternalServiceErrorResponse(int connfd){
 	write(connfd, header1, strlen(header1)); 
 	write(connfd, header2, strlen(header2));	
 	write(connfd, html, strlen(html));
+
+}
+
+char *getHostIp(){
+	
+	char *ip;
+	struct hostent *he;	
+
+	char hostname[1024];
+	hostname[1023] = '\0';
+	gethostname(hostname, 1023);
+
+	he = gethostbyname(hostname);
+	if (he == NULL) { // do some error checking
+    		herror("gethostbyname"); // herror(), NOT perror()
+    		exit(1);
+	}
+
+	// print information about this host:
+//	printf("Official name is: %s\n", he->h_name);
+//	printf("IP address: %s\n", inet_ntoa(*(struct in_addr*)he->h_addr));
+
+	ip = inet_ntoa(*(struct in_addr*)he->h_addr);
+
+	return ip;
+	
+}
+
+int checkHostHeader(char buf[]){
+	
+	int port = PORT;
+	char portStr[50];
+
+	sprintf(portStr, "%d", port);
+
+	char *ip;
+	ip = getHostIp();
+	
+	char *hostAndPort = (char *)malloc(2000);
+	
+	strcat(hostAndPort, ip);
+	strcat(hostAndPort, ":");
+	strcat(hostAndPort, portStr);
+
+	char *tempbuf = calloc(strlen(buf)+1, sizeof(char));
+	char *pt;
+	
+	strcpy(tempbuf, buf);	
+
+	pt = strtok(tempbuf, " \r\n");
+
+	while(pt != NULL){
+
+		if(strcmp(pt, "Host:") == 0){
+	
+			pt = strtok(NULL, " \r\n");
+
+			if(strcmp(pt, hostAndPort) == 0){
+
+				return 1;
+			}
+		}
+		pt = strtok(NULL, " \r\n");
+	}
+
+
+	return 0;
 
 }
 
