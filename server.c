@@ -24,7 +24,7 @@ char *getFileType(char *filename);
 char *getContent(char *fileType);
 int getSizeOfFile(char *ptr);
 void writeSuccessfulResponse(char *fileType, char *filename, char *fileBuf, int connfd);
-void writeNotFoundResponse(char *fileType, int connfd);
+void writeNotFoundResponse(int connfd);
 void writeBadRequestResponse(int connfd);
 void writeInternalServiceErrorResponse(int connfd);
 char *getHostIp();
@@ -82,15 +82,25 @@ int main(){
 			char *fileType = NULL;	
 			int hostOk = 0;
 
+			printf("%s\n", "before read");
+
 			rcount = read(connfd, buf, BUFLEN);
 			if (rcount == -1) {
 				// An error has occurred
 				serviceError = 1;
 			}
+			printf("%d\n", rcount);			
+				
 			if (rcount == 0)
 				break;		
 
 			buf[rcount]='\0';
+
+			printf("%s\n", "after read");
+
+//			printf("%d\n", rcount);
+
+			
 		
 			if(!serviceError){	
 	
@@ -109,7 +119,7 @@ int main(){
 
 					}
 					else{ 
-						writeNotFoundResponse(fileType, connfd);
+						writeNotFoundResponse(connfd);
 					}
 				}	
 				else{
@@ -286,27 +296,18 @@ void writeSuccessfulResponse(char *fileType, char *filename, char *fileBuf, int 
 
 }
 
-void writeNotFoundResponse(char *fileType, int connfd){
-
-	char *contentTypeString = (char *)malloc(1000);  
-	char *contentType;
+void writeNotFoundResponse(int connfd){
 
 	char header1[] = "HTTP/1.1 404 Not Found\r\n";
 
-	char header2[] = "Content-Type: ";	
+	char header2[] = "Content-Type: text/html\r\n";	
 
-	contentType = getContent(fileType);	
-
-	strcat(contentTypeString, header2);
-	strcat(contentTypeString, contentType);
-	strcat(contentTypeString, "\r\n");
-
-	char header3[] = "Connection: close\r\n\r\n";
+	char header3[] = "Connection: close\r\n\r\n";   // keep- alive strange behaviour here
 
 	char html[] = "<html><head><title>404 Not Found</title></head><body><p>The requested file cannot be found.</p></body></html>";
 
 	write(connfd, header1, strlen(header1)); 
-	write(connfd, contentTypeString, strlen(contentTypeString)); 
+	write(connfd, header2, strlen(header2)); 
 	write(connfd, header3, strlen(header3));	
 	write(connfd, html, strlen(html));
 
