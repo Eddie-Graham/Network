@@ -73,7 +73,7 @@ int main(){
 
 		printf("Server: Accepted!\n");
 
-//		while(1){
+		while(1){
 
 		
 			char buf[BUFLEN+1];
@@ -131,7 +131,7 @@ int main(){
 				writeInternalServiceErrorResponse(connfd);
 			}
 
-//		}
+		}
 		printf("Closing\n");	
 		close(connfd);
 		}
@@ -287,7 +287,7 @@ void writeSuccessfulResponse(char *fileType, char *filename, char *fileBuf, int 
 	strcat(contentLengthString, length);
 	strcat(contentLengthString, "\r\n");
 
-	char header4[] = "Connection: close\r\n\r\n";
+	char header4[] = "Connection: keep-alive\r\n\r\n";	//keep alive
 
 	write(connfd, header1, strlen(header1)); 
 	write(connfd, contentTypeString, strlen(contentTypeString)); 
@@ -303,27 +303,36 @@ void writeNotFoundResponse(int connfd){
 
 	char header2[] = "Content-Type: text/html\r\n";	
 
-	char header3[] = "Connection: close\r\n\r\n";   // keep- alive strange behaviour here
+	char header3[] = "Content-Length: 109\r\n";
+
+	char header4[] = "Connection: keep-alive\r\n\r\n";   
 
 	char html[] = "<html><head><title>404 Not Found</title></head><body><p>The requested file cannot be found.</p></body></html>";
 
 	write(connfd, header1, strlen(header1)); 
 	write(connfd, header2, strlen(header2)); 
 	write(connfd, header3, strlen(header3));	
+	write(connfd, header4, strlen(header4));	
 	write(connfd, html, strlen(html));
 
 }
 
 void writeBadRequestResponse(int connfd){	
 
-	char header1[] = "HTTP/1.1 404 Bad Request\r\n";	
+	char header1[] = "HTTP/1.1 404 Bad Request\r\n";
 
-	char header2[] = "Connection: close\r\n\r\n";
+	char header2[] = "Content-Type: text/html\r\n";	
+
+	char header3[] = "Content-Length: 88\r\n";	
+
+	char header4[] = "Connection: keep-alive\r\n\r\n";
 
 	char html[] = "<html><head><title>404 Bad Request</title></head><body><p>Bad Request.</p></body></html>";
 
 	write(connfd, header1, strlen(header1)); 
 	write(connfd, header2, strlen(header2));	
+	write(connfd, header3, strlen(header3)); 
+	write(connfd, header4, strlen(header4));
 	write(connfd, html, strlen(html));
 
 }
@@ -332,12 +341,18 @@ void writeInternalServiceErrorResponse(int connfd){
 
 	char header1[] = "HTTP/1.1 500 Internal Service Error\r\n";	
 
-	char header2[] = "Connection: close\r\n\r\n";
+	char header2[] = "Content-Type: text/html\r\n";	
+
+	char header3[] = "Content-Length: 110\r\n";	
+
+	char header4[] = "Connection: keep-alive\r\n\r\n";
 
 	char html[] = "<html><head><title>500 Internal Service Error</title></head><body><p>Internal Service Error.</p></body></html>";
 
 	write(connfd, header1, strlen(header1)); 
 	write(connfd, header2, strlen(header2));	
+	write(connfd, header3, strlen(header3)); 
+	write(connfd, header4, strlen(header4));
 	write(connfd, html, strlen(html));
 
 }
@@ -348,38 +363,31 @@ char *getHostName(){
 	char hostname[1024];
 	hostname[1023] = '\0';
 	gethostname(hostname, 1023);
+
+	int i;
+
+	for(i = 0; hostname[i]; i++){
+ 		 hostname[i] = tolower(hostname[i]);
+	}
 		
 	pt = hostname;
 
 	return pt;	
 }
 
-int checkHostHeader(char buf[]){
+int checkHostHeader(char buf[]){	
 
-	char *dcsString = (char *)malloc(1000); 
-	
-	int port = PORT;
-	char portStr[50];
-
-	sprintf(portStr, "%d", port);
+    char *dcsString = (char *)malloc(1000); 
 
 	char *hostName;
-	hostName = getHostName();	
-
-
-	char *tempbuf = calloc(strlen(buf)+1, sizeof(char));
-	char *pt;
-	
-	strcpy(tempbuf, buf);
-
-	int i;
-
-	for(i = 0; hostName[i]; i++){
- 		 hostName[i] = tolower(hostName[i]);
-	}
+	hostName = getHostName();
 
 	strcat(dcsString, hostName);
-	strcat(dcsString, ".dcs.gla.ac.uk");	
+	strcat(dcsString, ".dcs.gla.ac.uk");
+
+	char *tempbuf = calloc(strlen(buf)+1, sizeof(char));
+	char *pt;	
+	strcpy(tempbuf, buf);		
 
 	pt = strtok(tempbuf, " \r\n");
 
@@ -400,7 +408,6 @@ int checkHostHeader(char buf[]){
 
 
 	return 0;
-
 }
 
 
