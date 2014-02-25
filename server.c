@@ -12,7 +12,7 @@
 #include <fcntl.h>
 #include <netdb.h>
 #include <ctype.h>
-
+#include <pthread.h>
 
 #define BUFLEN 1500
 #define PORT 8081
@@ -90,8 +90,11 @@ int main(){
 				serviceError = 1;
 			}		
 				
-			if (rcount == 0)
-				break;		
+			if (rcount == 0){
+				printf("Closing\n");	
+				close(connfd);
+				break;	
+			}	
 
 			buf[rcount]='\0';			
 		
@@ -124,9 +127,6 @@ int main(){
 			}
 
 		}
-
-		printf("Closing\n");	
-		close(connfd);
 		}
 	
 	
@@ -370,7 +370,7 @@ char *getHostName(){
 
 int checkHostHeader(char buf[]){	
 
-    char *dcsString = (char *)malloc(1000); 
+	char *dcsString = (char *)malloc(1000); 
 
 	char *hostName;
 	hostName = getHostName();
