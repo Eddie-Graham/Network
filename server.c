@@ -17,6 +17,7 @@
 #define BUFLEN 1500
 #define PORT 8081
 #define ACCEPTCONNECTIONS 1
+#define MAINTAINCONNECTION 1
 #define RESPONSEBUF 10000
 
 char *getFileName(char buf[]);
@@ -64,6 +65,7 @@ int main(){
 		int serviceError = 0;
 	
 		printf("Server: Waiting to accept\n");
+
 		connfd = accept(fd, (struct sockaddr *) &cliaddr, &cliaddrlen);
 		
 		if (connfd == -1) {
@@ -73,8 +75,7 @@ int main(){
 
 		printf("Server: Accepted!\n");
 
-		while(1){
-
+		while(MAINTAINCONNECTION){
 		
 			char buf[BUFLEN+1];
 			ssize_t rcount;
@@ -83,25 +84,16 @@ int main(){
 			char *fileType = NULL;	
 			int hostOk = 0;
 
-//			printf("%s\n", "before read");
-
 			rcount = read(connfd, buf, BUFLEN);
 			if (rcount == -1) {
 				// An error has occurred
 				serviceError = 1;
-			}
-//			printf("%d\n", rcount);			
+			}		
 				
 			if (rcount == 0)
 				break;		
 
-			buf[rcount]='\0';
-
-//			printf("%s\n", "after read");
-
-//			printf("%d\n", rcount);
-
-			
+			buf[rcount]='\0';			
 		
 			if(!serviceError){	
 	
@@ -132,6 +124,7 @@ int main(){
 			}
 
 		}
+
 		printf("Closing\n");	
 		close(connfd);
 		}
@@ -248,7 +241,7 @@ int getSizeOfFile(char *filename){
 	
    	struct stat fs;
 
-        int fd = open(filename, O_RDONLY);
+    int fd = open(filename, O_RDONLY);
 	
 	if(fstat(fd, &fs) == -1){
 	
