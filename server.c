@@ -241,7 +241,7 @@ int getSizeOfFile(char *filename){
 	
    	struct stat fs;
 
-    int fd = open(filename, O_RDONLY);
+	int fd = open(filename, O_RDONLY);
 	
 	if(fstat(fd, &fs) == -1){
 	
