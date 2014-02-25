@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <netdb.h>
+#include <ctype.h>
 
 
 #define BUFLEN 1500
@@ -347,12 +348,10 @@ char *getHostName(){
 	char hostname[1024];
 	hostname[1023] = '\0';
 	gethostname(hostname, 1023);
-
 		
 	pt = hostname;
 
-	return pt;
-	
+	return pt;	
 }
 
 int checkHostHeader(char buf[]){
@@ -373,8 +372,14 @@ int checkHostHeader(char buf[]){
 	
 	strcpy(tempbuf, buf);
 
+	int i;
+
+	for(i = 0; hostName[i]; i++){
+ 		 hostName[i] = tolower(hostName[i]);
+	}
+
 	strcat(dcsString, hostName);
-	strcat(dcsString, ".dcs.gla.ac.uk");
+	strcat(dcsString, ".dcs.gla.ac.uk");	
 
 	pt = strtok(tempbuf, " \r\n");
 
@@ -384,8 +389,6 @@ int checkHostHeader(char buf[]){
 	
 			pt = strtok(NULL, " \r\n");
 			pt = strtok(pt, ":");
-			
-			printf("pt : %s\n", pt);
 
 			if((strcmp(pt, hostName) == 0)|| (strcmp(pt, dcsString) == 0) ){
 
