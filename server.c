@@ -27,7 +27,7 @@ void writeSuccessfulResponse(char *fileType, char *filename, char *fileBuf, int 
 void writeNotFoundResponse(int connfd);
 void writeBadRequestResponse(int connfd);
 void writeInternalServiceErrorResponse(int connfd);
-char *getHostIp();
+char *getHostName();
 int checkHostHeader(char buf[]);
 
 int main(){
@@ -82,21 +82,21 @@ int main(){
 			char *fileType = NULL;	
 			int hostOk = 0;
 
-			printf("%s\n", "before read");
+//			printf("%s\n", "before read");
 
 			rcount = read(connfd, buf, BUFLEN);
 			if (rcount == -1) {
 				// An error has occurred
 				serviceError = 1;
 			}
-			printf("%d\n", rcount);			
+//			printf("%d\n", rcount);			
 				
 			if (rcount == 0)
 				break;		
 
 			buf[rcount]='\0';
 
-			printf("%s\n", "after read");
+//			printf("%s\n", "after read");
 
 //			printf("%d\n", rcount);
 
@@ -207,7 +207,7 @@ char *getFileType(char *filename){
 
 	char *pt;
 	char *currentPt;	
-	char *tempFilename = calloc(strlen(filename)+1, sizeof(char));;
+	char *tempFilename = calloc(strlen(filename)+1, sizeof(char));
 	
 	strcpy(tempFilename, filename);	
 
@@ -341,51 +341,40 @@ void writeInternalServiceErrorResponse(int connfd){
 
 }
 
-char *getHostIp(){
+char *getHostName(){	
 	
-	char *ip;
-	struct hostent *he;	
-
+	char *pt;
 	char hostname[1024];
 	hostname[1023] = '\0';
 	gethostname(hostname, 1023);
 
-	he = gethostbyname(hostname);
-	if (he == NULL) { // do some error checking
-    		herror("gethostbyname"); // herror(), NOT perror()
-    		exit(1);
-	}
+		
+	pt = hostname;
 
-	// print information about this host:
-//	printf("Official name is: %s\n", he->h_name);
-//	printf("IP address: %s\n", inet_ntoa(*(struct in_addr*)he->h_addr));
-
-	ip = inet_ntoa(*(struct in_addr*)he->h_addr);
-
-	return ip;
+	return pt;
 	
 }
 
 int checkHostHeader(char buf[]){
+
+	char *dcsString = (char *)malloc(1000); 
 	
 	int port = PORT;
 	char portStr[50];
 
 	sprintf(portStr, "%d", port);
 
-	char *ip;
-	ip = getHostIp();
-	
-	char *hostAndPort = (char *)malloc(2000);
-	
-	strcat(hostAndPort, ip);
-	strcat(hostAndPort, ":");
-	strcat(hostAndPort, portStr);
+	char *hostName;
+	hostName = getHostName();	
+
 
 	char *tempbuf = calloc(strlen(buf)+1, sizeof(char));
 	char *pt;
 	
-	strcpy(tempbuf, buf);	
+	strcpy(tempbuf, buf);
+
+	strcat(dcsString, hostName);
+	strcat(dcsString, ".dcs.gla.ac.uk");
 
 	pt = strtok(tempbuf, " \r\n");
 
@@ -394,8 +383,11 @@ int checkHostHeader(char buf[]){
 		if(strcmp(pt, "Host:") == 0){
 	
 			pt = strtok(NULL, " \r\n");
+			pt = strtok(pt, ":");
+			
+			printf("pt : %s\n", pt);
 
-			if(strcmp(pt, hostAndPort) == 0){
+			if((strcmp(pt, hostName) == 0)|| (strcmp(pt, dcsString) == 0) ){
 
 				return 1;
 			}
