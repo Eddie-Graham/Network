@@ -31,6 +31,7 @@ void writeBadRequestResponse(int connfd);
 void writeInternalServiceErrorResponse(int connfd);
 char *getHostName();
 int checkHostHeader(char buf[]);
+void *processRequest(void *connfdPtr);
 
 int main(){
 
@@ -60,9 +61,7 @@ int main(){
 	struct sockaddr_in cliaddr;
 	socklen_t cliaddrlen = sizeof(cliaddr);
 
-	while(ACCEPTCONNECTIONS){	
-
-		int serviceError = 0;
+	while(ACCEPTCONNECTIONS){			
 	
 		printf("Server: Waiting to accept\n");
 
@@ -70,12 +69,50 @@ int main(){
 		
 		if (connfd == -1) {
 			// an error occurred
-			serviceError = 1;
+			//serviceError = 1;
 		} 
 
 		printf("Server: Accepted!\n");
 
-		while(MAINTAINCONNECTION){
+		pthread_t thr;
+
+		/* create a second thread which executes inc_x(&x) */
+		if(pthread_create(&thr, NULL, processRequest, &connfd)) {
+
+			fprintf(stderr, "Error creating thread\n");
+			return 1;
+
+		}
+
+		/* wait for the second thread to finish */
+//		if(pthread_join(thr, NULL)) {
+
+//			fprintf(stderr, "Error joining thread\n");
+//			return 2;
+
+//		}
+
+		printf("Thread finished\n");
+
+//		processRequest(&connfd);
+
+		
+		}
+	
+	
+	close(fd);
+	return 0;
+
+}
+
+void *processRequest(void *connfdPtr){
+
+	int *ptr = connfdPtr; 
+	int connfd = (int)*ptr;
+
+	while(MAINTAINCONNECTION){
+
+			printf("%lu\n", (unsigned long) pthread_self());
 		
 			char buf[BUFLEN+1];
 			ssize_t rcount;
@@ -83,6 +120,7 @@ int main(){
 			char *filename = NULL;		
 			char *fileType = NULL;	
 			int hostOk = 0;
+			int serviceError = 0;
 
 			rcount = read(connfd, buf, BUFLEN);
 			if (rcount == -1) {
@@ -126,12 +164,14 @@ int main(){
 				writeInternalServiceErrorResponse(connfd);
 			}
 
-		}
-		}
-	
-	
-	close(fd);
-	return 0;
+	}
+
+
+	return NULL;
+
+
+
+
 
 }
 
