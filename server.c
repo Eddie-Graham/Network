@@ -1,3 +1,5 @@
+/* Eddie Graham 1101301g, simple C server*/
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -18,7 +20,32 @@
 #define PORT 8081
 #define ACCEPTCONNECTIONS 1
 #define MAINTAINCONNECTION 1
-#define RESPONSEBUF 10000
+#define NO_IN_THREAD_POOL 10
+
+typedef struct threadnode THRNODE;
+typedef struct threadpool THRPOOL;
+typedef struct params PARAMS;
+
+/*threadnode stores node and its state (0 for availiable, 1 for working)*/
+struct threadnode {
+
+	pthread_t thr;
+	int state;	
+
+};
+
+/*threadpool stores list of threadnodes*/
+struct threadpool {
+
+	THRNODE *list[NO_IN_THREAD_POOL];
+
+};
+
+struct params {
+
+	int connfd;
+	THRNODE *thrnode;
+};
 
 char *getFileName(char buf[]);
 char *getFileBuf(char *filename);
@@ -32,13 +59,21 @@ void writeInternalServiceErrorResponse(int connfd);
 char *getHostName();
 int checkHostHeader(char buf[]);
 void *processRequest(void *connfdPtr);
+THRPOOL *create_thrpool();
+THRNODE *get_thr_for_work(THRPOOL *pool);
+
+pthread_mutex_t my_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int main(){
+
+	THRPOOL *pool;
+	pool = create_thrpool();
 
 	int fd = socket(AF_INET, SOCK_STREAM, 0);
 
 	if (fd == -1) {
 		// an error occurred
+		perror("Error: File Descriptor creation failed");
 	}	
 
 	struct sockaddr_in addr;
@@ -47,13 +82,15 @@ int main(){
 	addr.sin_port = htons(PORT);
 	
 	if (bind(fd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
-		printf("%s\n", "Bind failed");
+		// an error occurred
+		perror("Error: Bind failure");
 	}
 
 	int backlog = 10;	
 	
 	if (listen(fd, backlog) == -1) {
 		// an error occurred
+		perror("Error: Listen on File Descriptor failure");
 	}
 
 	int connfd;
@@ -61,7 +98,9 @@ int main(){
 	struct sockaddr_in cliaddr;
 	socklen_t cliaddrlen = sizeof(cliaddr);
 
-	while(ACCEPTCONNECTIONS){			
+	while(ACCEPTCONNECTIONS){	//handles multiple connections
+
+		int i;
 	
 		printf("Server: Waiting to accept\n");
 
@@ -69,33 +108,42 @@ int main(){
 		
 		if (connfd == -1) {
 			// an error occurred
-			//serviceError = 1;
+			perror("Error: Accept connection failure");
 		} 
 
 		printf("Server: Accepted!\n");
 
-		pthread_t thr;
+		THRNODE *thrnode;		
 
-		/* create a second thread which executes inc_x(&x) */
-		if(pthread_create(&thr, NULL, processRequest, &connfd)) {
+		pthread_mutex_lock(&my_mutex);
+		thrnode = get_thr_for_work(pool);
+		pthread_mutex_unlock(&my_mutex);
 
-			fprintf(stderr, "Error creating thread\n");
-			return 1;
+		pthread_t *thr;
+		thr = &(thrnode->thr);
 
+		for(i=0; i<NO_IN_THREAD_POOL;i++){
+
+			int w =pool->list[i]->state;
+			printf("1st %d\t", w);
+		}	
+
+		PARAMS *param;
+		param = (PARAMS *)malloc(sizeof(PARAMS));
+		param->connfd = connfd;
+		param->thrnode = thrnode;	
+
+		pthread_create(thr, NULL, processRequest, param);
+
+		printf("OUT %lu\n", (unsigned long) pthread_self());
+
+		for(i=0; i<NO_IN_THREAD_POOL;i++){
+
+			int w =pool->list[i]->state;
+			printf("2nd %d\t", w);
 		}
 
-		/* wait for the second thread to finish */
-//		if(pthread_join(thr, NULL)) {
-
-//			fprintf(stderr, "Error joining thread\n");
-//			return 2;
-
-//		}
-
-		printf("Thread finished\n");
-
-//		processRequest(&connfd);
-
+		printf("\nThread finished\n");
 		
 		}
 	
@@ -105,76 +153,78 @@ int main(){
 
 }
 
-void *processRequest(void *connfdPtr){
+/*process HTTP request via thread*/
+void *processRequest(void *param){
 
-	int *ptr = connfdPtr; 
-	int connfd = (int)*ptr;
 
-	while(MAINTAINCONNECTION){
+	PARAMS *ptr = param;
+	int connfd = ptr->connfd;
 
-			printf("%lu\n", (unsigned long) pthread_self());
+	printf("IN %lu\n", (unsigned long) pthread_self());
+
+	while(MAINTAINCONNECTION){	//handles multiple requests per connection
 		
-			char buf[BUFLEN+1];
-			ssize_t rcount;
-			char *fileBuf = NULL;
-			char *filename = NULL;		
-			char *fileType = NULL;	
-			int hostOk = 0;
-			int serviceError = 0;
+		char buf[BUFLEN+1];
+		ssize_t rcount;
+		char *fileBuf = NULL;
+		char *filename = NULL;		
+		char *fileType = NULL;	
+		int hostOk = 0;
+		int serviceError = 0;
 
-			rcount = read(connfd, buf, BUFLEN);
-			if (rcount == -1) {
-				// An error has occurred
-				serviceError = 1;
-			}		
-				
-			if (rcount == 0){
-				printf("Closing\n");	
-				close(connfd);
-				break;	
-			}	
+		rcount = read(connfd, buf, BUFLEN);
+		if (rcount == -1) {
+			// An error has occurred
+			perror("Error: Unable to read");
+			serviceError = 1;
+		}		
+			
+		if (rcount == 0){
+			printf("Closing\n");	
+			close(connfd);
+			break;	
+		}	
 
-			buf[rcount]='\0';			
+		buf[rcount]='\0';			
 		
-			if(!serviceError){	
+		if(!serviceError){	
 	
-				filename = getFileName(buf);
-				hostOk = checkHostHeader(buf);
+			filename = getFileName(buf);
+			hostOk = checkHostHeader(buf);
 		
-				if(filename && hostOk){
+			if(filename && hostOk){
 
-					printf("File: %s\n", filename);	
-					fileType = getFileType(filename);	
-					fileBuf = getFileBuf(filename);			
+				printf("File: %s\n", filename);	
+				fileType = getFileType(filename);	
+				fileBuf = getFileBuf(filename);			
 
-					if(fileBuf){	
+				if(fileBuf){	
 												
-						writeSuccessfulResponse(fileType, filename, fileBuf, connfd);
+					writeSuccessfulResponse(fileType, filename, fileBuf, connfd);
 
-					}
-					else{ 
-						writeNotFoundResponse(connfd);
-					}
-				}	
-				else{
-					writeBadRequestResponse(connfd);
 				}
-			}
+				else{ 
+					writeNotFoundResponse(connfd);
+				}
+			}	
 			else{
-				writeInternalServiceErrorResponse(connfd);
+				writeBadRequestResponse(connfd);
 			}
+		}
+		else{
+			writeInternalServiceErrorResponse(connfd);
+		}
 
 	}
 
-
+	pthread_mutex_lock(&my_mutex);
+	ptr->thrnode->state = 0;
+	pthread_mutex_unlock(&my_mutex);
+	
 	return NULL;
-
-
-
-
-
 }
 
+/*return filename from buf[]*/
 char *getFileName(char buf[]){
 	
 	char *pt;
@@ -200,6 +250,7 @@ char *getFileName(char buf[]){
 	return NULL;
 }
 
+/*returns file contents from filename, if file does not exist NULL is returned*/
 char *getFileBuf(char *filename){
 
 	FILE * pFile;
@@ -237,6 +288,7 @@ char *getFileBuf(char *filename){
 
 }
 
+/*returns file type (html, txt, gif etc)*/
 char *getFileType(char *filename){
 
 	char *pt;
@@ -255,6 +307,7 @@ char *getFileType(char *filename){
 	return currentPt;
 }
 
+/*returns content type*/
 char *getContent(char *fileType){
 	
 	char *contentType;	
@@ -277,6 +330,7 @@ char *getContent(char *fileType){
 
 }
 
+/*returns size of file*/
 int getSizeOfFile(char *filename){  
 	
    	struct stat fs;
@@ -291,6 +345,7 @@ int getSizeOfFile(char *filename){
 
 }
 
+/*writes a successful response to the browser*/
 void writeSuccessfulResponse(char *fileType, char *filename, char *fileBuf, int connfd){
 
 	long fileSize = (long) NULL;
@@ -330,6 +385,7 @@ void writeSuccessfulResponse(char *fileType, char *filename, char *fileBuf, int 
 
 }
 
+/*writes a not found response to the browser*/
 void writeNotFoundResponse(int connfd){
 
 	char header1[] = "HTTP/1.1 404 Not Found\r\n";
@@ -350,6 +406,7 @@ void writeNotFoundResponse(int connfd){
 
 }
 
+/*writes a bad request response to the browser*/
 void writeBadRequestResponse(int connfd){	
 
 	char header1[] = "HTTP/1.1 404 Bad Request\r\n";
@@ -370,6 +427,7 @@ void writeBadRequestResponse(int connfd){
 
 }
 
+/*writes an internal service error response to the browser*/
 void writeInternalServiceErrorResponse(int connfd){	
 
 	char header1[] = "HTTP/1.1 500 Internal Service Error\r\n";	
@@ -390,6 +448,7 @@ void writeInternalServiceErrorResponse(int connfd){
 
 }
 
+/*returns hostname*/
 char *getHostName(){	
 	
 	char *pt;
@@ -408,6 +467,7 @@ char *getHostName(){
 	return pt;	
 }
 
+/*checks hostname of server matches Host: header, returns 1 if true, else 0*/
 int checkHostHeader(char buf[]){	
 
 	char *dcsString = (char *)malloc(1000); 
@@ -443,7 +503,38 @@ int checkHostHeader(char buf[]){
 	return 0;
 }
 
+/*creates threadpool and returns pointed to it*/
+THRPOOL *create_thrpool(){
 
+	THRPOOL *pool;
+	pool = (THRPOOL *)malloc(sizeof(THRPOOL));
+	int i;
 
+	for(i=0; i<NO_IN_THREAD_POOL; i++){
 
+		pool->list[i] = (THRNODE *)malloc(sizeof(THRNODE));
+		pool->list[i]->state = 0;
+	}
+	
+	return pool;
 
+}
+
+/*returns pointer to thrnode for work and changes its state to 1(busy)*/
+THRNODE *get_thr_for_work(THRPOOL *pool){
+
+	int i;
+
+	while(1){
+	for(i=0; i<NO_IN_THREAD_POOL;i++){
+
+		if(pool->list[i]->state == 0){
+			pool->list[i]->state = 1;
+			return pool->list[i];
+		}
+	}
+}
+	
+	return NULL;
+
+}
