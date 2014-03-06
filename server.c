@@ -28,21 +28,17 @@ typedef struct params PARAMS;
 
 /*threadnode stores node and its state (0 for availiable, 1 for working)*/
 struct threadnode {
-
 	pthread_t thr;
 	int state;	
-
 };
 
 /*threadpool stores list of threadnodes*/
 struct threadpool {
-
 	THRNODE *list[NO_IN_THREAD_POOL];
-
 };
 
+/*params for pthread_create method*/
 struct params {
-
 	int connfd;
 	THRNODE *thrnode;
 };
@@ -99,8 +95,6 @@ int main(){
 	socklen_t cliaddrlen = sizeof(cliaddr);
 
 	while(ACCEPTCONNECTIONS){	//handles multiple connections
-
-		int i;
 	
 		printf("Server: Waiting to accept\n");
 
@@ -122,12 +116,6 @@ int main(){
 		pthread_t *thr;
 		thr = &(thrnode->thr);
 
-		for(i=0; i<NO_IN_THREAD_POOL;i++){
-
-			int w =pool->list[i]->state;
-			printf("1st %d\t", w);
-		}	
-
 		PARAMS *param;
 		param = (PARAMS *)malloc(sizeof(PARAMS));
 		param->connfd = connfd;
@@ -137,25 +125,16 @@ int main(){
 
 		printf("OUT %lu\n", (unsigned long) pthread_self());
 
-		for(i=0; i<NO_IN_THREAD_POOL;i++){
-
-			int w =pool->list[i]->state;
-			printf("2nd %d\t", w);
-		}
-
 		printf("\nThread finished\n");
 		
-		}
-	
+		}	
 	
 	close(fd);
 	return 0;
-
 }
 
 /*process HTTP request via thread*/
 void *processRequest(void *param){
-
 
 	PARAMS *ptr = param;
 	int connfd = ptr->connfd;
@@ -253,39 +232,29 @@ char *getFileName(char buf[]){
 /*returns file contents from filename, if file does not exist NULL is returned*/
 char *getFileBuf(char *filename){
 
-	FILE * pFile;
-  	long lSize;
+	FILE *file;
+  	long size;
 	char * buffer;
-  	size_t result;
 
-  	pFile = fopen (filename , "rb" );
- 	if (pFile==NULL) { 
+  	file = fopen (filename , "rb" );
+ 	if(file==NULL) { 
 		return NULL;
 	}
 
-  	// obtain file size:
-  	fseek (pFile , 0 , SEEK_END);
-  	lSize = ftell (pFile);
-  	rewind (pFile);
+  	fseek(file , 0 , SEEK_END);
+  	size = ftell (file);
+  	rewind(file);
 
-  	// allocate memory to contain the whole file:
- 	buffer = (char*) malloc (sizeof(char)*lSize);
- 	if (buffer == NULL) {
+ 	buffer = (char*)malloc(sizeof(char)*size);
+ 	if(buffer == NULL) {
 		return NULL;
 	}
 
-  	// copy the file into the buffer:
- 	result = fread (buffer,1,lSize,pFile);
-  	if ((unsigned) result != lSize) {}
+ 	fread(buffer,1,size,file);
 
-  	/* the whole file is now loaded in the memory buffer. */
-
-  	// terminate
-  	fclose (pFile);
+  	fclose(file);
 //	free (buffer);
  	return buffer;
-
-
 }
 
 /*returns file type (html, txt, gif etc)*/
@@ -327,7 +296,6 @@ char *getContent(char *fileType){
 	else contentType = "application/octet-stream";
 
 	return contentType;
-
 }
 
 /*returns size of file*/
@@ -342,7 +310,6 @@ int getSizeOfFile(char *filename){
 	}
    	
    	return fs.st_size;
-
 }
 
 /*writes a successful response to the browser*/
@@ -382,7 +349,6 @@ void writeSuccessfulResponse(char *fileType, char *filename, char *fileBuf, int 
 	write(connfd, contentLengthString, strlen(contentLengthString)); 
 	write(connfd, header4, strlen(header4));	
 	write(connfd, fileBuf,fileSize);
-
 }
 
 /*writes a not found response to the browser*/
@@ -403,7 +369,6 @@ void writeNotFoundResponse(int connfd){
 	write(connfd, header3, strlen(header3));	
 	write(connfd, header4, strlen(header4));	
 	write(connfd, html, strlen(html));
-
 }
 
 /*writes a bad request response to the browser*/
@@ -424,7 +389,6 @@ void writeBadRequestResponse(int connfd){
 	write(connfd, header3, strlen(header3)); 
 	write(connfd, header4, strlen(header4));
 	write(connfd, html, strlen(html));
-
 }
 
 /*writes an internal service error response to the browser*/
@@ -445,7 +409,6 @@ void writeInternalServiceErrorResponse(int connfd){
 	write(connfd, header3, strlen(header3)); 
 	write(connfd, header4, strlen(header4));
 	write(connfd, html, strlen(html));
-
 }
 
 /*returns hostname*/
@@ -517,7 +480,6 @@ THRPOOL *create_thrpool(){
 	}
 	
 	return pool;
-
 }
 
 /*returns pointer to thrnode for work and changes its state to 1(busy)*/
@@ -533,8 +495,7 @@ THRNODE *get_thr_for_work(THRPOOL *pool){
 			return pool->list[i];
 		}
 	}
-}
+	}
 	
 	return NULL;
-
 }
