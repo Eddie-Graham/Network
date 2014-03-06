@@ -96,16 +96,12 @@ int main(){
 
 	while(ACCEPTCONNECTIONS){	//handles multiple connections
 	
-		printf("Server: Waiting to accept\n");
-
 		connfd = accept(fd, (struct sockaddr *) &cliaddr, &cliaddrlen);
 		
 		if (connfd == -1) {
 			// an error occurred
 			perror("Error: Accept connection failure");
 		} 
-
-		printf("Server: Accepted!\n");
 
 		THRNODE *thrnode;		
 
@@ -122,10 +118,6 @@ int main(){
 		param->thrnode = thrnode;	
 
 		pthread_create(thr, NULL, processRequest, param);
-
-		printf("OUT %lu\n", (unsigned long) pthread_self());
-
-		printf("\nThread finished\n");
 		
 		}	
 	
@@ -138,8 +130,6 @@ void *processRequest(void *param){
 
 	PARAMS *ptr = param;
 	int connfd = ptr->connfd;
-
-	printf("IN %lu\n", (unsigned long) pthread_self());
 
 	while(MAINTAINCONNECTION){	//handles multiple requests per connection
 		
@@ -159,7 +149,6 @@ void *processRequest(void *param){
 		}		
 			
 		if (rcount == 0){
-			printf("Closing\n");	
 			close(connfd);
 			break;	
 		}	
@@ -173,7 +162,6 @@ void *processRequest(void *param){
 		
 			if(filename && hostOk){
 
-				printf("File: %s\n", filename);	
 				fileType = getFileType(filename);	
 				fileBuf = getFileBuf(filename);			
 
